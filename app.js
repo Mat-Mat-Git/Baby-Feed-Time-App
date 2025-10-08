@@ -131,6 +131,12 @@ window.addFeeding = function() {
         return;
     }
 
+    // Check if user is authenticated
+    if (!auth.currentUser) {
+        alert('Not authenticated. Please log out and log in again.');
+        return;
+    }
+
     const feeding = {
         time: timeInput,
         volume: parseInt(volume),
@@ -147,6 +153,8 @@ window.addFeeding = function() {
         })
         .catch((error) => {
             console.error('Error adding feeding:', error);
+            console.error('Error code:', error.code);
+            console.error('Error message:', error.message);
             alert('Failed to add feeding. Please try again.');
         });
 }
