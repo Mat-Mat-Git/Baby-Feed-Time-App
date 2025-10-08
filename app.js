@@ -1,6 +1,7 @@
 // Import Firebase SDK
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getDatabase, ref, push, onValue, remove } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -16,18 +17,24 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
+const auth = getAuth(app);
 const feedingsRef = ref(database, 'feedings');
 
 // Password for the app (you can change this)
 const APP_PASSWORD = 'Freddie2025';
 
-// Check if user is logged in on page load
-window.addEventListener('DOMContentLoaded', () => {
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
-
-    if (isLoggedIn === 'true') {
-        showApp();
+// Check Firebase auth state on page load
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        // User is authenticated with Firebase
+        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        if (isLoggedIn === 'true') {
+            showApp();
+        } else {
+            showLogin();
+        }
     } else {
+        // No Firebase user, show login
         showLogin();
     }
 });
@@ -39,10 +46,18 @@ window.login = function() {
     const errorElement = document.getElementById('loginError');
 
     if (password === APP_PASSWORD) {
-        localStorage.setItem('isLoggedIn', 'true');
-        errorElement.textContent = '';
-        passwordInput.value = '';
-        showApp();
+        // Sign in anonymously to Firebase
+        signInAnonymously(auth)
+            .then(() => {
+                localStorage.setItem('isLoggedIn', 'true');
+                errorElement.textContent = '';
+                passwordInput.value = '';
+                showApp();
+            })
+            .catch((error) => {
+                console.error('Firebase auth error:', error);
+                errorElement.textContent = 'Authentication failed. Please try again.';
+            });
     } else {
         errorElement.textContent = 'Incorrect password';
     }
