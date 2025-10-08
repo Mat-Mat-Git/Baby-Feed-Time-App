@@ -1,3 +1,23 @@
+// Import Firebase SDK
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { getDatabase, ref, push, onValue, remove } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyB6skPAqdfeDB3Qw9BusNZxvEs1xp8xcUw",
+  authDomain: "baby-feeding-tracker-74e9b.firebaseapp.com",
+  databaseURL: "https://baby-feeding-tracker-74e9b-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "baby-feeding-tracker-74e9b",
+  storageBucket: "baby-feeding-tracker-74e9b.firebasestorage.app",
+  messagingSenderId: "715033819403",
+  appId: "1:715033819403:web:38702de4bfe8a89be58a0e"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+const feedingsRef = ref(database, 'feedings');
+
 // Password for the app (you can change this)
 const APP_PASSWORD = 'Freddie2025';
 
@@ -13,7 +33,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // Login function
-function login() {
+window.login = function() {
     const passwordInput = document.getElementById('passwordInput');
     const password = passwordInput.value;
     const errorElement = document.getElementById('loginError');
@@ -41,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Logout function
-function logout() {
+window.logout = function() {
     localStorage.setItem('isLoggedIn', 'false');
     showLogin();
 }
@@ -61,7 +81,7 @@ function showApp() {
 }
 
 // Set current time in the datetime input
-function setCurrentTime() {
+window.setCurrentTime = function() {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -74,13 +94,13 @@ function setCurrentTime() {
 }
 
 // Update volume display
-function updateVolumeDisplay() {
+window.updateVolumeDisplay = function() {
     const volume = document.getElementById('volumeSlider').value;
     document.getElementById('volumeDisplay').textContent = volume;
 }
 
 // Add a new feeding entry
-function addFeeding() {
+window.addFeeding = function() {
     const timeInput = document.getElementById('feedingTime').value;
     const volume = document.getElementById('volumeSlider').value;
 
@@ -95,76 +115,84 @@ function addFeeding() {
     }
 
     const feeding = {
-        id: Date.now(),
         time: timeInput,
-        volume: parseInt(volume)
+        volume: parseInt(volume),
+        timestamp: Date.now()
     };
 
-    // Get existing feedings
-    let feedings = JSON.parse(localStorage.getItem('feedings') || '[]');
-
-    // Add new feeding
-    feedings.push(feeding);
-
-    // Save to localStorage
-    localStorage.setItem('feedings', JSON.stringify(feedings));
-
-    // Reset form
-    document.getElementById('volumeSlider').value = '0';
-    updateVolumeDisplay();
-    setCurrentTime();
-
-    // Reload feeding list
-    loadFeedings();
+    // Push to Firebase
+    push(feedingsRef, feeding)
+        .then(() => {
+            // Reset form
+            document.getElementById('volumeSlider').value = '0';
+            updateVolumeDisplay();
+            setCurrentTime();
+        })
+        .catch((error) => {
+            console.error('Error adding feeding:', error);
+            alert('Failed to add feeding. Please try again.');
+        });
 }
 
-// Load and display feedings
+// Load and display feedings with real-time updates
 function loadFeedings() {
-    const feedings = JSON.parse(localStorage.getItem('feedings') || '[]');
     const feedingListElement = document.getElementById('feedingList');
 
-    if (feedings.length === 0) {
-        feedingListElement.innerHTML = '<div class="empty-state">No feedings recorded yet</div>';
-        return;
-    }
+    // Listen for real-time updates
+    onValue(feedingsRef, (snapshot) => {
+        const feedingsData = snapshot.val();
 
-    // Sort feedings by time (most recent first)
-    feedings.sort((a, b) => new Date(b.time) - new Date(a.time));
+        if (!feedingsData) {
+            feedingListElement.innerHTML = '<div class="empty-state">No feedings recorded yet</div>';
+            return;
+        }
 
-    feedingListElement.innerHTML = feedings.map(feeding => {
-        const date = new Date(feeding.time);
-        const timeString = date.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        });
-        const dateString = date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
+        // Convert object to array
+        const feedingsArray = Object.keys(feedingsData).map(key => ({
+            id: key,
+            ...feedingsData[key]
+        }));
 
-        return `
-            <div class="feeding-item">
-                <div class="feeding-item-info">
-                    <div class="feeding-time">${timeString}</div>
-                    <div class="feeding-date">${dateString}</div>
+        // Sort feedings by time (most recent first)
+        feedingsArray.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+        feedingListElement.innerHTML = feedingsArray.map(feeding => {
+            const date = new Date(feeding.time);
+            const timeString = date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+            const dateString = date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+
+            return `
+                <div class="feeding-item">
+                    <div class="feeding-item-info">
+                        <div class="feeding-time">${timeString}</div>
+                        <div class="feeding-date">${dateString}</div>
+                    </div>
+                    <div class="feeding-volume">${feeding.volume}ml</div>
+                    <button class="delete-btn" onclick="deleteFeeding('${feeding.id}')">Delete</button>
                 </div>
-                <div class="feeding-volume">${feeding.volume}ml</div>
-                <button class="delete-btn" onclick="deleteFeeding(${feeding.id})">Delete</button>
-            </div>
-        `;
-    }).join('');
+            `;
+        }).join('');
+    });
 }
 
 // Delete a feeding entry
-function deleteFeeding(id) {
+window.deleteFeeding = function(id) {
     if (!confirm('Are you sure you want to delete this feeding entry?')) {
         return;
     }
 
-    let feedings = JSON.parse(localStorage.getItem('feedings') || '[]');
-    feedings = feedings.filter(feeding => feeding.id !== id);
-    localStorage.setItem('feedings', JSON.stringify(feedings));
-    loadFeedings();
+    const feedingRef = ref(database, `feedings/${id}`);
+    remove(feedingRef)
+        .catch((error) => {
+            console.error('Error deleting feeding:', error);
+            alert('Failed to delete feeding. Please try again.');
+        });
 }
