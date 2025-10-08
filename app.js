@@ -1,7 +1,7 @@
 // Import Firebase SDK
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getDatabase, ref, push, onValue, remove } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -25,16 +25,25 @@ const APP_PASSWORD = 'Freddie2025';
 
 // Check Firebase auth state on page load
 onAuthStateChanged(auth, (user) => {
-    if (user) {
-        // User is authenticated with Firebase
-        const isLoggedIn = localStorage.getItem('isLoggedIn');
-        if (isLoggedIn === 'true') {
-            showApp();
-        } else {
-            showLogin();
-        }
+    const isLoggedIn = localStorage.getItem('isLoggedIn');
+
+    if (user && isLoggedIn === 'true') {
+        // User is authenticated with Firebase and passed password check
+        showApp();
+    } else if (!user && isLoggedIn === 'true') {
+        // User passed password check before but not authenticated with Firebase
+        // Sign them in anonymously
+        signInAnonymously(auth)
+            .then(() => {
+                showApp();
+            })
+            .catch((error) => {
+                console.error('Auto sign-in failed:', error);
+                localStorage.setItem('isLoggedIn', 'false');
+                showLogin();
+            });
     } else {
-        // No Firebase user, show login
+        // Not logged in, show login screen
         showLogin();
     }
 });
@@ -77,8 +86,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Logout function
 window.logout = function() {
-    localStorage.setItem('isLoggedIn', 'false');
-    showLogin();
+    signOut(auth)
+        .then(() => {
+            localStorage.setItem('isLoggedIn', 'false');
+            showLogin();
+        })
+        .catch((error) => {
+            console.error('Logout error:', error);
+            localStorage.setItem('isLoggedIn', 'false');
+            showLogin();
+        });
 }
 
 // Show login screen
