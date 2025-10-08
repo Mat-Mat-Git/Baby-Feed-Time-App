@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (passwordInput) {
         passwordInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                login();
+                window.login();
             }
         });
     }
@@ -81,7 +81,7 @@ function showApp() {
 }
 
 // Set current time in the datetime input
-window.setCurrentTime = function() {
+function setCurrentTime() {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -92,12 +92,14 @@ window.setCurrentTime = function() {
     const dateTimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
     document.getElementById('feedingTime').value = dateTimeString;
 }
+window.setCurrentTime = setCurrentTime;
 
 // Update volume display
-window.updateVolumeDisplay = function() {
+function updateVolumeDisplay() {
     const volume = document.getElementById('volumeSlider').value;
     document.getElementById('volumeDisplay').textContent = volume;
 }
+window.updateVolumeDisplay = updateVolumeDisplay;
 
 // Add a new feeding entry
 window.addFeeding = function() {
@@ -125,8 +127,8 @@ window.addFeeding = function() {
         .then(() => {
             // Reset form
             document.getElementById('volumeSlider').value = '0';
-            updateVolumeDisplay();
-            setCurrentTime();
+            window.updateVolumeDisplay();
+            window.setCurrentTime();
         })
         .catch((error) => {
             console.error('Error adding feeding:', error);

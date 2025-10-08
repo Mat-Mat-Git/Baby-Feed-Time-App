@@ -13,7 +13,7 @@
             <h1>🍼 Baby Feeding Tracker</h1>
             <div class="login-form">
                 <input type="password" id="passwordInput" placeholder="Enter password" />
-                <button onclick="login()">Login</button>
+                <button onclick="window.login()">Login</button>
                 <p class="error-message" id="loginError"></p>
             </div>
         </div>
@@ -24,7 +24,7 @@
         <div class="container">
             <div class="header">
                 <h1>🍼 Feeding Tracker</h1>
-                <button class="logout-btn" onclick="logout()">Logout</button>
+                <button class="logout-btn" onclick="window.logout()">Logout</button>
             </div>
 
             <!-- Feeding Entry Form -->
@@ -34,18 +34,18 @@
                 <div class="form-group">
                     <label for="feedingTime">Time:</label>
                     <input type="datetime-local" id="feedingTime" />
-                    <button class="btn-secondary" onclick="setCurrentTime()">Now</button>
+                    <button class="btn-secondary" onclick="window.setCurrentTime()">Now</button>
                 </div>
 
                 <div class="form-group">
                     <label for="volumeInput">Volume (ml):</label>
-                    <input type="range" id="volumeSlider" min="0" max="330" step="10" value="0" oninput="updateVolumeDisplay()" />
+                    <input type="range" id="volumeSlider" min="0" max="330" step="10" value="0" oninput="window.updateVolumeDisplay()" />
                     <div class="volume-display">
                         <span id="volumeDisplay">0</span> ml
                     </div>
                 </div>
 
-                <button class="btn-primary" onclick="addFeeding()">Add Feeding</button>
+                <button class="btn-primary" onclick="window.addFeeding()">Add Feeding</button>
             </div>
 
             <!-- Feeding History -->
