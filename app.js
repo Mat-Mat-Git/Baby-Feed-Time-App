@@ -203,7 +203,7 @@ function loadFeedings() {
             const timeString = date.toLocaleTimeString('en-US', {
                 hour: '2-digit',
                 minute: '2-digit',
-                hour12: true
+                hour12: false
             });
             const dateString = date.toLocaleDateString('en-US', {
                 month: 'short',

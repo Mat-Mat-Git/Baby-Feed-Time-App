@@ -39,10 +39,10 @@
 
                 <div class="form-group">
                     <label for="volumeInput">Volume (ml):</label>
-                    <input type="range" id="volumeSlider" min="0" max="330" step="10" value="0" oninput="window.updateVolumeDisplay()" />
                     <div class="volume-display">
                         <span id="volumeDisplay">0</span> ml
                     </div>
+                    <input type="range" id="volumeSlider" min="0" max="330" step="10" value="0" oninput="window.updateVolumeDisplay()" />
                 </div>
 
                 <button class="btn-primary" onclick="window.addFeeding()">Add Feeding</button>
