@@ -50,11 +50,43 @@
 
             <!-- Feeding History -->
             <div class="feeding-history">
-                <h2>Feeding History</h2>
-                <div id="feedingList"></div>
+                <div class="tabs">
+                    <button class="tab-button active" onclick="window.switchTab('history')">History</button>
+                    <button class="tab-button" onclick="window.switchTab('stats')">Statistics</button>
+                    <button class="tab-button" onclick="window.switchTab('graph')">Graph</button>
+                </div>
+
+                <div id="historyTab" class="tab-content active">
+                    <div id="feedingList"></div>
+                </div>
+
+                <div id="statsTab" class="tab-content">
+                    <div class="stats-container">
+                        <div class="stat-card">
+                            <div class="stat-label">Average Time Between Feeds (24h)</div>
+                            <div class="stat-value" id="avgTimeBetween">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Average Volume (24h)</div>
+                            <div class="stat-value" id="avgVolume">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="graphTab" class="tab-content">
+                    <div class="chart-container">
+                        <div class="chart-wrapper">
+                            <canvas id="feedingChart"></canvas>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <!-- Firebase SDK -->
     <script type="module" src="app.js"></script>

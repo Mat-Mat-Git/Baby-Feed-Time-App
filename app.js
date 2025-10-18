@@ -178,14 +178,19 @@ window.addFeeding = function() {
 
 // Load and display feedings with real-time updates
 function loadFeedings() {
+    console.log('loadFeedings called');
     const feedingListElement = document.getElementById('feedingList');
 
     // Listen for real-time updates
     onValue(feedingsRef, (snapshot) => {
+        console.log('Firebase data received');
         const feedingsData = snapshot.val();
+        console.log('Feedings data:', feedingsData);
 
         if (!feedingsData) {
             feedingListElement.innerHTML = '<div class="empty-state">No feedings recorded yet</div>';
+            updateStatistics([]);
+            updateChart([]);
             return;
         }
 
@@ -222,7 +227,217 @@ function loadFeedings() {
                 </div>
             `;
         }).join('');
+
+        // Update statistics
+        updateStatistics(feedingsArray);
+
+        // Update chart
+        updateChart(feedingsArray);
     });
+}
+
+// Calculate and update statistics for last 24 hours
+function updateStatistics(feedingsArray) {
+    const now = Date.now();
+    const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
+
+    // Filter feedings from last 24 hours
+    const recentFeedings = feedingsArray.filter(feeding => {
+        const feedingTime = new Date(feeding.time).getTime();
+        return feedingTime >= twentyFourHoursAgo;
+    });
+
+    // Sort by time (oldest first for time between calculation)
+    const sortedFeedings = [...recentFeedings].sort((a, b) =>
+        new Date(a.time) - new Date(b.time)
+    );
+
+    // Calculate average volume
+    let avgVolumeText = '-';
+    if (sortedFeedings.length > 0) {
+        const totalVolume = sortedFeedings.reduce((sum, f) => sum + f.volume, 0);
+        const avgVolume = Math.round(totalVolume / sortedFeedings.length);
+        avgVolumeText = `${avgVolume} ml`;
+    }
+
+    // Calculate average time between feeds
+    let avgTimeText = '-';
+    if (sortedFeedings.length >= 2) {
+        let totalTimeDiff = 0;
+        for (let i = 1; i < sortedFeedings.length; i++) {
+            const timeDiff = new Date(sortedFeedings[i].time) - new Date(sortedFeedings[i-1].time);
+            totalTimeDiff += timeDiff;
+        }
+        const avgTimeMs = totalTimeDiff / (sortedFeedings.length - 1);
+        const avgTimeHours = Math.floor(avgTimeMs / (1000 * 60 * 60));
+        const avgTimeMins = Math.round((avgTimeMs % (1000 * 60 * 60)) / (1000 * 60));
+
+        if (avgTimeHours > 0) {
+            avgTimeText = `${avgTimeHours}h ${avgTimeMins}m`;
+        } else {
+            avgTimeText = `${avgTimeMins}m`;
+        }
+    }
+
+    // Update DOM
+    document.getElementById('avgVolume').textContent = avgVolumeText;
+    document.getElementById('avgTimeBetween').textContent = avgTimeText;
+}
+
+// Chart instance
+let feedingChart = null;
+
+// Update chart with feeding data
+function updateChart(feedingsArray) {
+    console.log('updateChart called with', feedingsArray.length, 'feedings');
+
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js not loaded yet');
+        return;
+    }
+
+    const ctx = document.getElementById('feedingChart');
+    if (!ctx) {
+        console.log('Chart canvas not found');
+        return;
+    }
+
+    console.log('Updating chart with', feedingsArray.length, 'feedings');
+
+    // If no data, show empty chart
+    if (feedingsArray.length === 0) {
+        if (feedingChart) {
+            feedingChart.destroy();
+            feedingChart = null;
+        }
+        return;
+    }
+
+    // Sort by time (newest first - descending)
+    const sortedFeedings = [...feedingsArray].sort((a, b) =>
+        new Date(b.time) - new Date(a.time)
+    );
+
+    console.log('First feeding (newest):', sortedFeedings[0]?.time);
+    console.log('Last feeding (oldest):', sortedFeedings[sortedFeedings.length - 1]?.time);
+
+    // Prepare data
+    const chartData = sortedFeedings.map(feeding => {
+        const date = new Date(feeding.time);
+        console.log('Feed:', date, feeding.volume);
+        return {
+            x: date.getTime(),
+            y: feeding.volume
+        };
+    });
+
+    // Destroy existing chart if it exists
+    if (feedingChart) {
+        feedingChart.destroy();
+    }
+
+    // Set canvas size for scrolling
+    const dataPoints = chartData.length;
+    const minWidth = Math.max(800, dataPoints * 50); // 50px per data point, minimum 800px
+    ctx.width = minWidth;
+    ctx.height = 400;
+    ctx.parentElement.style.width = minWidth + 'px';
+
+    // Create new chart
+    feedingChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: 'Feeding Volume (ml)',
+                data: chartData,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBackgroundColor: '#667eea',
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: false,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            const date = new Date(context[0].parsed.x);
+                            return date.toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false
+                            });
+                        },
+                        label: function(context) {
+                            return context.parsed.y + ' ml';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    reverse: true,
+                    time: {
+                        unit: 'day',
+                        displayFormats: {
+                            day: 'MMM d',
+                            hour: 'MMM d, HH:mm'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Volume (ml)'
+                    },
+                    ticks: {
+                        stepSize: 50
+                    }
+                }
+            }
+        }
+    });
+
+    console.log('Chart created successfully');
+}
+
+// Switch between tabs
+window.switchTab = function(tabName) {
+    // Update tab buttons
+    const tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    // Update tab content
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabContents.forEach(content => content.classList.remove('active'));
+
+    if (tabName === 'history') {
+        document.getElementById('historyTab').classList.add('active');
+    } else if (tabName === 'stats') {
+        document.getElementById('statsTab').classList.add('active');
+    } else if (tabName === 'graph') {
+        document.getElementById('graphTab').classList.add('active');
+    }
 }
 
 // Delete a feeding entry
