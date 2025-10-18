@@ -421,11 +421,14 @@ function updateChart(feedingsArray) {
 }
 
 // Switch between tabs
-window.switchTab = function(tabName) {
+window.switchTab = function(tabName, event) {
     // Update tab buttons
     const tabButtons = document.querySelectorAll('.tab-button');
     tabButtons.forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
 
     // Update tab content
     const tabContents = document.querySelectorAll('.tab-content');
@@ -433,10 +436,19 @@ window.switchTab = function(tabName) {
 
     if (tabName === 'history') {
         document.getElementById('historyTab').classList.add('active');
+        if (!event || !event.target) {
+            document.querySelector('[onclick*="history"]').classList.add('active');
+        }
     } else if (tabName === 'stats') {
         document.getElementById('statsTab').classList.add('active');
+        if (!event || !event.target) {
+            document.querySelector('[onclick*="stats"]').classList.add('active');
+        }
     } else if (tabName === 'graph') {
         document.getElementById('graphTab').classList.add('active');
+        if (!event || !event.target) {
+            document.querySelector('[onclick*="graph"]').classList.add('active');
+        }
     }
 }
 
